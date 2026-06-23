@@ -1,0 +1,21 @@
+# Maven build outputs
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# IDEs and Editors
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# OS temporary files
+Thumbs.db
+Desktop.ini
+.DS_Store

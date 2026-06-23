@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Attendance System - IoT Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hidden">
+        <i id="toast-icon" class="fa-solid fa-circle-info"></i>
+        <span id="toast-msg">Notification Message</span>
+    </div>
+
+    <!-- 1. Authentication View -->
+    <div id="login-container" class="login-view">
+        <div class="login-glow"></div>
+        <div class="login-card">
+            <div class="brand">
+                <div class="logo-box">
+                    <i class="fa-solid fa-fingerprint"></i>
+                </div>
+                <h2>AuraGate</h2>
+                <p>Biometric Student Attendance System</p>
+            </div>
+            
+            <form id="login-form">
+                <div class="input-group">
+                    <label for="username"><i class="fa-solid fa-user"></i> Username</label>
+                    <input type="text" id="username" placeholder="Enter your username" required>
+                </div>
+                <div class="input-group">
+                    <label for="password"><i class="fa-solid fa-lock"></i> Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn-primary">
+                    Sign In <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="demo-credentials">
+                <p>Quick login for testing (Password: <code>password</code>):</p>
+                <div class="demo-buttons">
+                    <button class="btn-demo" onclick="fillCredentials('admin')">Admin</button>
+                    <button class="btn-demo" onclick="fillCredentials('teacher1')">Teacher</button>
+                    <button class="btn-demo" onclick="fillCredentials('student1')">Student 1 (Alice)</button>
+                    <button class="btn-demo" onclick="fillCredentials('student2')">Student 2 (Bob)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Main Dashboard App Layout -->
+    <div id="app-container" class="app-layout hidden">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <i class="fa-solid fa-fingerprint"></i>
+                <span>AuraGate</span>
+            </div>
+
+            <nav class="sidebar-menu">
+                <a href="#" class="menu-item active" data-target="panel-dashboard">
+                    <i class="fa-solid fa-chart-pie"></i> Dashboard
+                </a>
+                
+                <!-- Admin specific links -->
+                <a href="#" class="menu-item admin-only hidden" data-target="panel-admin-users">
+                    <i class="fa-solid fa-users-gear"></i> Manage Users
+                </a>
+                <a href="#" class="menu-item admin-only hidden" data-target="panel-admin-classes">
+                    <i class="fa-solid fa-graduation-cap"></i> Manage Classes
+                </a>
+
+                <!-- Teacher specific links -->
+                <a href="#" class="menu-item teacher-only hidden" data-target="panel-teacher-classes">
+                    <i class="fa-solid fa-chalkboard-user"></i> My Classes
+                </a>
+
+                <!-- Student specific links -->
+                <a href="#" class="menu-item student-only hidden" data-target="panel-student-attendance">
+                    <i class="fa-solid fa-user-check"></i> My Attendance
+                </a>
+
+                <a href="#" class="menu-item" data-target="panel-logs">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Attendance Logs
+                </a>
+                <a href="#" class="menu-item" data-target="panel-simulator">
+                    <i class="fa-solid fa-microchip"></i> IoT Device Simulator
+                </a>
+            </nav>
+
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    <i class="fa-solid fa-user-circle"></i>
+                </div>
+                <div class="user-info">
+                    <span id="user-display-name">Username</span>
+                    <span id="user-display-role" class="badge">Role</span>
+                </div>
+                <button id="logout-btn" title="Sign Out">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Body -->
+        <main class="main-content">
+            
+            <!-- Dashboard Overview Panel -->
+            <section id="panel-dashboard" class="dashboard-panel active">
+                <div class="panel-header">
+                    <h1>Dashboard Overview</h1>
+                    <p id="dashboard-date">Today's Date</p>
+                </div>
+                
+                <!-- Stat Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon purple"><i class="fa-solid fa-users"></i></div>
+                        <div class="stat-details">
+                            <h3>Total Students</h3>
+                            <span id="stat-total-students" class="number">--</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fa-solid fa-book-open"></i></div>
+                        <div class="stat-details">
+                            <h3>Active Classes</h3>
+                            <span id="stat-total-classes" class="number">--</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fa-solid fa-calendar-check"></i></div>
+                        <div class="stat-details">
+                            <h3>Scanned Today</h3>
+                            <span id="stat-scans-today" class="number">--</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon gold"><i class="fa-solid fa-percent"></i></div>
+                        <div class="stat-details">
+                            <h3>Attendance Rate</h3>
+                            <span id="stat-attendance-rate" class="number">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layout-grid">
+                    <!-- Quick Actions / Welcome card -->
+                    <div class="content-card glass welcome-card">
+                        <h2>Welcome back, <span id="welcome-name">User</span>!</h2>
+                        <p>This panel gives you real-time analytics on student attendance tracked by our fingerprint and RFID terminals. Access your corresponding dashboard panel on the left sidebar.</p>
+                        <div class="card-action-buttons">
+                            <button class="btn-secondary" onclick="document.querySelector('[data-target=panel-simulator]').click()">
+                                <i class="fa-solid fa-microchip"></i> Open IoT Simulator
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Live Feed logs -->
+                    <div class="content-card glass live-feed-card">
+                        <div class="card-header">
+                            <h2><i class="fa-solid fa-circle-dot blink"></i> Live Attendance Feed</h2>
+                        </div>
+                        <div class="feed-container" id="dashboard-live-feed">
+                            <div class="feed-empty">No recent attendance logged yet. Use the Simulator to register attendance.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Admin Panel: Users Management -->
+            <section id="panel-admin-users" class="dashboard-panel">
+                <div class="panel-header">
+                    <h1>Manage Users</h1>
+                    <p>Register and view administrators, teachers, and student profiles.</p>
+                </div>
+
+                <div class="layout-grid">
+                    <!-- Add User Form -->
+                    <div class="content-card glass">
+                        <h2>Create New User</h2>
+                        <form id="admin-user-form">
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label>Role</label>
+                                    <select id="reg-role" required onchange="toggleRoleFormFields()">
+                                        <option value="ROLE_STUDENT">Student</option>
+                                        <option value="ROLE_TEACHER">Teacher</option>
+                                        <option value="ROLE_ADMIN">Administrator</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label>Username</label>
+                                    <input type="text" id="reg-username" placeholder="e.g. jdoe" required>
+                                </div>
+                                <div class="input-group">
+                                    <label>Password</label>
+                                    <input type="password" id="reg-password" placeholder="Min 6 chars" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label>Full Name</label>
+                                    <input type="text" id="reg-fullname" placeholder="e.g. John Doe" required>
+                                </div>
+                                <div class="input-group">
+                                    <label>Email</label>
+                                    <input type="email" id="reg-email" placeholder="e.g. john@university.com" required>
+                                </div>
+                            </div>
+
+                            <!-- Student Specific Fields -->
+                            <div id="form-student-fields">
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label>Roll Number</label>
+                                        <input type="text" id="reg-roll" placeholder="e.g. CS-2026-089">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label>Fingerprint ID (AS608 slot)</label>
+                                        <input type="number" id="reg-fingerprint" placeholder="1 to 127">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>RFID Card UID</label>
+                                        <input type="text" id="reg-rfid" placeholder="e.g. A9B8C7D6">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Teacher Specific Fields -->
+                            <div id="form-teacher-fields" class="hidden">
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label>Department</label>
+                                        <input type="text" id="reg-dept" placeholder="e.g. Computer Science">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-primary">Register User</button>
+                        </form>
+                    </div>
+
+                    <!-- Users List -->
+                    <div class="content-card glass max-height-card">
+                        <h2>System Users</h2>
+                        <div class="table-container">
+                            <table id="admin-users-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Username</th>
+                                        <th>Role</th>
+                                        <th>Details</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic content -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Admin Panel: Classes Management -->
+            <section id="panel-admin-classes" class="dashboard-panel">
+                <div class="panel-header">
+                    <h1>Manage Classes</h1>
+                    <p>Create subjects, assign teachers, and enroll student rosters.</p>
+                </div>
+
+                <div class="layout-grid">
+                    <!-- Create Class Form -->
+                    <div class="content-card glass">
+                        <h2>Create Class</h2>
+                        <form id="admin-class-form">
+                            <div class="input-group">
+                                <label>Class Name Code</label>
+                                <input type="text" id="class-name" placeholder="e.g. CS-101" required>
+                            </div>
+                            <div class="input-group">
+                                <label>Subject Title</label>
+                                <input type="text" id="class-subject" placeholder="e.g. Distributed Computing" required>
+                            </div>
+                            <div class="input-group">
+                                <label>Assign Teacher</label>
+                                <select id="class-teacher" required>
+                                    <option value="">Select a teacher...</option>
+                                    <!-- Dynamic content -->
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-primary">Create Class</button>
+                        </form>
+                    </div>
+
+                    <!-- Enroll Student Form -->
+                    <div class="content-card glass">
+                        <h2>Enroll Student in Class</h2>
+                        <form id="admin-enroll-form">
+                            <div class="input-group">
+                                <label>Select Class</label>
+                                <select id="enroll-class-id" required>
+                                    <option value="">Select class...</option>
+                                    <!-- Dynamic content -->
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Select Student</label>
+                                <select id="enroll-student-id" required>
+                                    <option value="">Select student...</option>
+                                    <!-- Dynamic content -->
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-primary">Enroll Student</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="content-card glass mt-4">
+                    <h2>Academic Classes Overview</h2>
+                    <div class="table-container">
+                        <table id="admin-classes-table">
+                            <thead>
+                                <tr>
+                                    <th>Class Name</th>
+                                    <th>Subject</th>
+                                    <th>Teacher Name</th>
+                                    <th>Enrolled Students Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dynamic content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Teacher Panel: Classroom Management -->
+            <section id="panel-teacher-classes" class="dashboard-panel">
+                <div class="panel-header">
+                    <h1>My Classrooms</h1>
+                    <p>View your classes, rosters, and manually mark attendance.</p>
+                </div>
+
+                <div class="class-grid" id="teacher-class-list">
+                    <!-- Dynamic class cards -->
+                </div>
+
+                <!-- Roster Section (Hidden until class card is clicked) -->
+                <div id="teacher-roster-section" class="content-card glass mt-4 hidden">
+                    <div class="roster-header">
+                        <div>
+                            <h2 id="roster-class-title">Roster Details</h2>
+                            <p id="roster-class-subject">Subject</p>
+                        </div>
+                        <button class="btn-secondary btn-sm" onclick="hideRoster()"><i class="fa-solid fa-xmark"></i> Close Roster</button>
+                    </div>
+                    
+                    <div class="layout-grid mt-3">
+                        <div class="table-container">
+                            <table id="teacher-roster-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Roll Number</th>
+                                        <th>Biometric Details</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Manual Mark Box -->
+                        <div class="manual-mark-box glass">
+                            <h3>Manual Attendance Override</h3>
+                            <form id="teacher-manual-mark-form">
+                                <input type="hidden" id="manual-class-id">
+                                <div class="input-group">
+                                    <label>Student Name</label>
+                                    <select id="manual-student-id" required>
+                                        <option value="">Select student...</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label>Status</label>
+                                    <select id="manual-status" required>
+                                        <option value="PRESENT">PRESENT</option>
+                                        <option value="LATE">LATE</option>
+                                        <option value="ABSENT">ABSENT</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn-primary">Save Attendance Log</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Student Panel: Attendance History -->
+            <section id="panel-student-attendance" class="dashboard-panel">
+                <div class="panel-header">
+                    <h1>My Attendance Records</h1>
+                    <p>Track your registered scans, classes, and check-in status.</p>
+                </div>
+
+                <div class="layout-grid">
+                    <!-- Student Profile Info -->
+                    <div class="content-card glass profile-card">
+                        <div class="profile-avatar">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <h2 id="profile-name">Student Full Name</h2>
+                        <p class="profile-roll" id="profile-roll">Roll Number: --</p>
+                        <div class="profile-details">
+                            <div class="profile-detail-item">
+                                <span class="label">Fingerprint ID</span>
+                                <span class="val" id="profile-fingerprint">--</span>
+                            </div>
+                            <div class="profile-detail-item">
+                                <span class="label">RFID Card UID</span>
+                                <span class="val" id="profile-rfid">--</span>
+                            </div>
+                            <div class="profile-detail-item">
+                                <span class="label">Academic Account</span>
+                                <span class="val" id="profile-email">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Student History List -->
+                    <div class="content-card glass">
+                        <h2>My Attendance Logs</h2>
+                        <div class="table-container">
+                            <table id="student-logs-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date/Time</th>
+                                        <th>Class Name</th>
+                                        <th>Subject</th>
+                                        <th>Status</th>
+                                        <th>Method</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic content -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Shared Panel: Logs & CSV Report Export -->
+            <section id="panel-logs" class="dashboard-panel">
+                <div class="panel-header flex-header">
+                    <div>
+                        <h1>Attendance Logs</h1>
+                        <p>History of all scanned and marked attendance events.</p>
+                    </div>
+                    <!-- Export Report (Hidden for Students) -->
+                    <button id="export-csv-btn" class="btn-primary teacher-only admin-only hidden">
+                        <i class="fa-solid fa-file-csv"></i> Export CSV Report
+                    </button>
+                </div>
+
+                <div class="content-card glass">
+                    <div class="table-container">
+                        <table id="attendance-logs-table">
+                            <thead>
+                                <tr>
+                                    <th>Log ID</th>
+                                    <th>Student Name</th>
+                                    <th>Roll Number</th>
+                                    <th>Class Code</th>
+                                    <th>Timestamp</th>
+                                    <th>Status</th>
+                                    <th>Method</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dynamic content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- IoT Device Simulator Panel -->
+            <section id="panel-simulator" class="dashboard-panel">
+                <div class="panel-header">
+                    <h1>IoT Attendance Terminal Simulator</h1>
+                    <p>Simulate ESP32 device transactions checking fingerprint scans and RFID card swipes.</p>
+                </div>
+
+                <div class="layout-grid">
+                    <!-- Simulator Hardware Box -->
+                    <div class="content-card glass simulator-card">
+                        <h2>Hardware Mockup (ESP32 Node)</h2>
+                        <div class="iot-device">
+                            <!-- LCD Display Screen -->
+                            <div class="lcd-display">
+                                <div class="lcd-line" id="lcd-line1">AuraGate Node v1.0</div>
+                                <div class="lcd-line" id="lcd-line2">System Ready...</div>
+                            </div>
+                            
+                            <div class="iot-lights">
+                                <div class="led red-led" id="led-red"></div>
+                                <div class="led green-led" id="led-green"></div>
+                                <div class="buzzer" id="buzzer-element"><i class="fa-solid fa-volume-high"></i></div>
+                            </div>
+
+                            <!-- Mock Sensors -->
+                            <div class="sensor-inputs">
+                                <div class="sensor-box fingerprint-scanner" onclick="triggerSimulatedScan('FINGERPRINT')">
+                                    <i class="fa-solid fa-fingerprint"></i>
+                                    <span>Press Fingerprint Sensor</span>
+                                </div>
+                                <div class="sensor-box rfid-scanner" onclick="triggerSimulatedScan('RFID')">
+                                    <i class="fa-solid fa-id-card"></i>
+                                    <span>Swipe RFID Tag</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Simulator Controls -->
+                        <div class="simulator-controls mt-4">
+                            <h3>Device Configuration</h3>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label>Select Student to Simulate</label>
+                                    <select id="sim-student-id" onchange="loadSimStudentDetails()">
+                                        <option value="">Choose Student...</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label>Class Terminal Location</label>
+                                    <select id="sim-class-id">
+                                        <option value="">Auto Resolve Class</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="device-details-box glass">
+                                <div><strong>Selected Roll:</strong> <span id="sim-info-roll">--</span></div>
+                                <div><strong>Fingerprint ID Slot:</strong> <span id="sim-info-fingerprint">--</span></div>
+                                <div><strong>RFID Card UID:</strong> <span id="sim-info-rfid">--</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Simulator Console Log Output -->
+                    <div class="content-card glass simulator-console-card">
+                        <div class="card-header">
+                            <h2>Terminal Transaction Log</h2>
+                            <button class="btn-clear btn-sm" onclick="clearConsole()"><i class="fa-solid fa-trash-can"></i> Clear</button>
+                        </div>
+                        <div class="terminal-body" id="terminal-log">
+                            <div class="terminal-line text-muted">[SYSTEM] Simulator initialized. Target Endpoint: /api/iot/scan</div>
+                            <div class="terminal-line text-muted">[SYSTEM] Security Header 'X-Device-Token' loaded.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
